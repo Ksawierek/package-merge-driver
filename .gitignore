@@ -1,3 +1,4 @@
-/package-merge-driver.iml
-/.idea/
-/go.mod
+package-merge-driver.iml
+.idea/
+go.mod
+bin/
