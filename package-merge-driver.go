@@ -3,11 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/tidwall/sjson"
 	"gitlab.com/c0b/go-ordered-json"
 	"golang.org/x/mod/semver"
 	"io/ioutil"
 	"os"
-	"regexp"
 )
 
 func main() {
@@ -41,36 +41,36 @@ func main() {
 }
 
 func resolveVersion(filePath string) string {
-	jsonFile, err := os.Open(filePath)
+	file, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		fmt.Println(err)
+		panic(err)
 	}
-	defer jsonFile.Close()
-
-	byteValue, _ := ioutil.ReadAll(jsonFile)
 
 	var om = ordered.NewOrderedMap()
-	json.Unmarshal(byteValue, om)
+	err = json.Unmarshal(file, om)
+	if err != nil {
+		panic(err)
+	}
 
 	version := "v" + om.Get("version").(string)
 
 	if !semver.IsValid(version) {
-		fmt.Println("Wrong semantic version: " + version)
+		panic("Wrong semantic version: " + version)
 	}
 
 	return version
 }
 
 func replaceVersion(path string, version string) {
-
-	read, err := ioutil.ReadFile(path)
+	fileContent, err := ioutil.ReadFile(path)
 	if err != nil {
 		panic(err)
 	}
 
-	versionRegexp := regexp.MustCompile(`"version"\s*:.*,`)
-
-	result := versionRegexp.ReplaceAllString(string(read), fmt.Sprintf(`"version": "%s",`, version))
+	result, err := sjson.Set(string(fileContent), "version", version)
+	if err != nil {
+		panic(err)
+	}
 
 	err = ioutil.WriteFile(path, []byte(result), 0)
 	if err != nil {
