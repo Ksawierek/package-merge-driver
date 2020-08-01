@@ -35,8 +35,6 @@ package-lock.json merge=packagemerge
 
 ### Multistage docker build
 If you're using Docker image to build npm project, you can create image that have driver inside docker image.
+For example (including gitflow) [Dockerfile](Dockerfile).
 
-
-
-
-Tested only in linux!
+Everything was tested only on Linux System!
