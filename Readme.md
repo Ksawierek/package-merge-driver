@@ -41,4 +41,6 @@ For example (including nodejs, gitflow) [Dockerfile](Dockerfile).
 docker build .
 ```
 
+And now you can use image to build javascript project with npm.
+
 Everything was tested only on Linux System!
