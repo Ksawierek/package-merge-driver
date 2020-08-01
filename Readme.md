@@ -1,8 +1,8 @@
 # Package Merge Git Driver
-Resolve semantic version conflicts in package.json and package-lock.json. Resolved only conflicts of project version not depencencies.
+Resolves semantic version conflicts in package.json and package-lock.json. Driver resolves only conflicts of project version not depencencies.
 
 ### How it works
-For example if u've got git flow repository:
+For example if you've got git flow repository:
 
 |                       | master | develop | release |
 | ---                   | ---    | ---     | ---     |
