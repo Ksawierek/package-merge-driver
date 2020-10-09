@@ -7,7 +7,9 @@ import (
 	"gitlab.com/c0b/go-ordered-json"
 	"golang.org/x/mod/semver"
 	"io/ioutil"
+	"log"
 	"os"
+	"os/exec"
 )
 
 func main() {
@@ -17,7 +19,7 @@ func main() {
 		fmt.Println("\t%O - ancestor’s version of the conflicting file")
 		fmt.Println("\t%A - current version of the conflicting file")
 		fmt.Println("\t%B - other branch's version of the conflicting file")
-		return
+		os.Exit(1)
 	}
 
 	// This is the information we pass through in the driver config via
@@ -38,24 +40,34 @@ func main() {
 	if len(maxVersion) > 0 {
 		replaceVersion(currentFilePath, maxVersion)
 	}
+
+	output, err := exec.Command("git", "merge-file", "-p", "-L mine", "-L base", "-L theirs", currentFilePath, ancestorFilePath, otherFilePath).CombinedOutput()
+	if err != nil {
+		log.Fatal(string(output))
+	}
+
+	err = ioutil.WriteFile(currentFilePath, output, 0)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func resolveVersion(filePath string) string {
 	file, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	var om = ordered.NewOrderedMap()
 	err = json.Unmarshal(file, om)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	version := "v" + om.Get("version").(string)
 
 	if !semver.IsValid(version) {
-		panic("Wrong semantic version: " + version)
+		log.Fatal("Wrong semantic version: " + version)
 	}
 
 	return version
@@ -64,16 +76,16 @@ func resolveVersion(filePath string) string {
 func replaceVersion(path string, version string) {
 	fileContent, err := ioutil.ReadFile(path)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	result, err := sjson.Set(string(fileContent), "version", version)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	err = ioutil.WriteFile(path, []byte(result), 0)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 }
