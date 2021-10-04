@@ -27,7 +27,7 @@ In simple words higher version always win.
     driver = {PATH_TO_DRIVER}/package-merge-driver %O %A %B
 ```
 
-* ad in project .gitattributes:
+* add in project .gitattributes:
 ```
 package.json merge=packagemerge
 package-lock.json merge=packagemerge
