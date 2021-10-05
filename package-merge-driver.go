@@ -35,16 +35,18 @@ func main() {
 	currentVersion := resolveVersion(currentFilePath)
 	otherVersion := resolveVersion(otherFilePath)
 
-	maxVersion := semver.Max(otherVersion, semver.Max(ancestorVersion, currentVersion))[1:]
+	maxVersion := maxVersion([]string{otherVersion, ancestorVersion, currentVersion})
 
-	if len(maxVersion) > 0 {
-		replaceVersion(currentFilePath, maxVersion)
-	}
+	// first replace to eliminates version conflicts
+	replaceVersion(currentFilePath, otherVersion)
 
 	output, err := exec.Command("git", "merge-file", "-p", "-L mine", "-L base", "-L theirs", currentFilePath, ancestorFilePath, otherFilePath).CombinedOutput()
 	if err != nil {
 		log.Fatal(string(output))
 	}
+
+	// then replace to max_version
+	replaceVersion(currentFilePath, maxVersion)
 
 	err = ioutil.WriteFile(currentFilePath, output, 0)
 	if err != nil {
@@ -70,7 +72,7 @@ func resolveVersion(filePath string) string {
 		log.Fatal("Wrong semantic version: " + version)
 	}
 
-	return version
+	return version[1:]
 }
 
 func replaceVersion(path string, version string) {
@@ -88,4 +90,14 @@ func replaceVersion(path string, version string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func maxVersion(versions []string) string {
+	max := "0.0.0"
+	for i := range versions {
+		if semver.Compare("v"+max, "v"+versions[i]) < 0 {
+			max = versions[i]
+		}
+	}
+	return max
 }

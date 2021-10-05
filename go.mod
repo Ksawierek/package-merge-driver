@@ -1,9 +1,15 @@
-module github.com/Ksawierek/package-merge-driver
+module package-merge-driver
 
-go 1.14
+go 1.17
 
 require (
-	github.com/tidwall/sjson v1.1.2
-	gitlab.com/c0b/go-ordered-json v0.0.0-20171130231205-49bbdab258c2
-	golang.org/x/mod v0.3.0
+	github.com/tidwall/sjson v1.2.2
+	gitlab.com/c0b/go-ordered-json v0.0.0-20201030195603-febf46534d5a
+	golang.org/x/mod v0.5.1
+)
+
+require (
+	github.com/tidwall/gjson v1.9.1 // indirect
+	github.com/tidwall/match v1.0.3 // indirect
+	github.com/tidwall/pretty v1.2.0 // indirect
 )
