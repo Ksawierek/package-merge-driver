@@ -1,15 +1,15 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
+	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
-	"gitlab.com/c0b/go-ordered-json"
 	"golang.org/x/mod/semver"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 func main() {
@@ -31,65 +31,75 @@ func main() {
 	currentFilePath := os.Args[2]
 	otherFilePath := os.Args[3]
 
-	ancestorVersion := resolveVersion(ancestorFilePath)
-	currentVersion := resolveVersion(currentFilePath)
-	otherVersion := resolveVersion(otherFilePath)
+	ancestorContent := readContent(ancestorFilePath)
+	currentContent := readContent(currentFilePath)
+	otherContent := readContent(otherFilePath)
+
+	ancestorVersion := getVersion(ancestorContent)
+	currentVersion := getVersion(currentContent)
+	otherVersion := getVersion(otherContent)
 
 	maxVersion := maxVersion([]string{otherVersion, ancestorVersion, currentVersion})
 
 	// first replace to eliminates version conflicts
-	replaceVersion(currentFilePath, otherVersion)
+	if currentVersion != "" && ancestorVersion != "" && otherVersion != "" && currentVersion != otherVersion && otherVersion != ancestorVersion {
+		currentContent = setVersion(currentContent, otherVersion)
+		writeContent(currentFilePath, currentContent)
+	}
 
-	output, err := exec.Command("git", "merge-file", "-p", "-L mine", "-L base", "-L theirs", currentFilePath, ancestorFilePath, otherFilePath).CombinedOutput()
+	output, err := exec.Command("git", "merge-file", "-L mine", "-L base", "-L theirs", "-p", currentFilePath, ancestorFilePath, otherFilePath).CombinedOutput()
 	if err != nil {
 		log.Fatal(string(output))
 	}
 
-	// then replace to max_version
-	replaceVersion(currentFilePath, maxVersion)
+	currentContent = string(output)
 
-	err = ioutil.WriteFile(currentFilePath, output, 0)
-	if err != nil {
-		log.Fatal(err)
+	if currentVersion != "" {
+		branch, err := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD").CombinedOutput()
+		if err != nil {
+			log.Fatal(string(branch))
+		}
+		println("Merging version " + otherVersion + " into " + strings.ReplaceAll(string(branch), "\n", "") + ". Calculated version is: " + maxVersion)
+		currentContent = setVersion(string(output), maxVersion)
 	}
+	writeContent(currentFilePath, currentContent)
 }
 
-func resolveVersion(filePath string) string {
-	file, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	var om = ordered.NewOrderedMap()
-	err = json.Unmarshal(file, om)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	version := "v" + om.Get("version").(string)
-
-	if !semver.IsValid(version) {
-		log.Fatal("Wrong semantic version: " + version)
-	}
-
-	return version[1:]
-}
-
-func replaceVersion(path string, version string) {
+func readContent(path string) string {
 	fileContent, err := ioutil.ReadFile(path)
 	if err != nil {
 		log.Fatal(err)
 	}
+	return string(fileContent)
+}
 
-	result, err := sjson.Set(string(fileContent), "version", version)
+func writeContent(path string, content string) {
+	err := ioutil.WriteFile(path, []byte(content), 0)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func getVersion(content string) string {
+	result := gjson.Get(content, "version")
+	if !result.Exists() {
+		return ""
+	}
+
+	if !semver.IsValid("v" + result.String()) {
+		log.Fatal("Wrong semantic version: " + result.String())
+	}
+
+	return result.String()
+}
+
+func setVersion(content string, version string) string {
+	result, err := sjson.Set(content, "version", version)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = ioutil.WriteFile(path, []byte(result), 0)
-	if err != nil {
-		log.Fatal(err)
-	}
+	return result
 }
 
 func maxVersion(versions []string) string {
