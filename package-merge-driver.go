@@ -99,6 +99,11 @@ func setVersion(content string, version string) string {
 		log.Fatal(err)
 	}
 
+	result, err = sjson.Set(result, "packages..version", version)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	return result
 }
 
