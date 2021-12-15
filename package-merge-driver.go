@@ -49,7 +49,8 @@ func main() {
 
 	output, err := exec.Command("git", "merge-file", "-L mine", "-L base", "-L theirs", "-p", currentFilePath, ancestorFilePath, otherFilePath).CombinedOutput()
 	if err != nil {
-		log.Fatal(string(output))
+		//log.Fatal(string(output))
+		log.Fatal("Can't resolved conflicts.")
 	}
 
 	currentContent = string(output)
@@ -99,10 +100,12 @@ func setVersion(content string, version string) string {
 		log.Fatal(err)
 	}
 
-	result, err = sjson.Delete(result, "packages..version")
-	result, err = sjson.Set(result, "packages..version", version)
-	if err != nil {
-		log.Fatal(err)
+	ver := gjson.Get(result, "packages..version")
+	if ver.Exists() {
+		result, err = sjson.Set(result, "packages..version", version)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	return result
